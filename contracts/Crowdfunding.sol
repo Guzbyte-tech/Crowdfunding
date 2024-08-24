@@ -36,6 +36,15 @@ contract Crowdfunding {
         owner = msg.sender;
     }
     //Function to createCampaign
+    /**
+     * @dev Creates a new campaign with specified details.
+     * @param _title The title of the campaign.
+     * @param _description The description of the campaign.
+     * @param _benefactor The address of the benefactor who will receive the funds.
+     * @param _goal The fundraising goal for the campaign in wei.
+     * @param _duration The duration of the campaign in seconds.
+     * @return Returns the newly created Campaign structure.
+     */
     function createCampaign(
         string memory _title,
         string memory _description,
@@ -66,6 +75,11 @@ contract Crowdfunding {
     }
 
     // Function to donateToCampain
+    /**
+     * @dev Allows users to donate to an active campaign by sending ETH.
+     * @param _campaignId The ID of the campaign to which the donation is made.
+     * @return Returns the updated Campaign structure after the donation is added.
+     */
     function donate(uint _campaignId) public payable returns (Campaign memory) {
         Campaign storage selectedCampaign = campaigns[_campaignId];
         require(msg.value > 0, "Donation amount must be greater than zero");
@@ -80,7 +94,9 @@ contract Crowdfunding {
 
     //Fucntion to EndCampaign
     /**
-     * This function ends a campaign by selected the campaign Id
+     * @dev Ends a campaign after the deadline has passed and transfers the raised amount to the benefactor.
+     * @param _campaignId The ID of the campaign to end.
+     * @return Returns the ended Campaign structure.
      */
     function endCampaign(
         uint _campaignId
@@ -110,13 +126,18 @@ contract Crowdfunding {
         return selectedCampaign;
     }
 
-    // Function to allow the owner to withdraw leftover funds
+    /**
+     * @dev Allows the contract owner to withdraw any leftover funds in the contract.
+     * Only the owner can call this function.
+     */
     function withdrawLeftoverFunds() public payable onlyOwner {
         require(address(this).balance > 0, "No funds to withdraw");
         payable(owner).transfer(address(this).balance); //One way transfer to the owner of the contract.
     }
 
-    // Modifier to restrict access to the contract owner
+    /**
+     * @dev Modifier to ensure only the owner of the contract can execute certain functions.
+     */
     modifier onlyOwner() {
         require(msg.sender == owner, "Not the contract owner");
         _;
