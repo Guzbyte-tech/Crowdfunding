@@ -35,17 +35,7 @@ contract Crowdfunding {
         // Set the owner to the account that deploys the contract
         owner = msg.sender;
     }
-
-    /**
-     * @notice Creates a new fundraising campaign.
-     * @dev The campaign's deadline is calculated by adding the current block timestamp to the duration (in seconds).
-     * @param _title The title of the campaign.
-     * @param _description A brief description of the campaign.
-     * @param _benefactor The address of the benefactor who will receive the funds raised.
-     * @param _goal The target amount (in wei) that the campaign aims to raise.
-     * @param _duration The duration of the campaign in seconds, after which the campaign will end.
-     * @return The newly created campaign details (as a Campaign struct).
-     */
+    //Function to createCampaign
     function createCampaign(
         string memory _title,
         string memory _description,
@@ -75,12 +65,7 @@ contract Crowdfunding {
         return newCampain;
     }
 
-    /**
-     * @notice Donates amount in wei to the benefactor of the campaign.
-     * @dev The campaign's deadline is calculated by adding the current block timestamp to the duration (in seconds).
-     * @param _campaignId The ID of the campaign.
-     * @return The selected campaign details (as a Campaign struct).
-     */
+    // Function to donateToCampain
     function donate(uint _campaignId) public payable returns (Campaign memory) {
         Campaign storage selectedCampaign = campaigns[_campaignId];
         require(msg.value > 0, "Donation amount must be greater than zero");
@@ -88,45 +73,44 @@ contract Crowdfunding {
             block.timestamp < selectedCampaign.deadline,
             "Campaign has already ended"
         );
-        (bool success, ) = payable(selectedCampaign.benefactor).call{
-            value: msg.value
-        }("");
-        require(success, "Donation failed.");
         selectedCampaign.amountRaised += msg.value;
         emit DonationReceived(_campaignId, msg.value);
         return selectedCampaign;
     }
 
+    //Fucntion to EndCampaign
     /**
-     * @notice Ends the campaign.
-     * @dev This function ends a selected campaign and transfer all funds to the benefactor.
-     * @param _campaignId The ID of the campaign.
-     * @return The selected campaign details (as a Campaign struct).
+     * This function ends a campaign by selected the campaign Id
      */
     function endCampaign(
         uint _campaignId
     ) public payable returns (Campaign memory) {
-        Campaign memory selectedCampaign = campaigns[_campaignId];
+        Campaign storage selectedCampaign = campaigns[_campaignId];
         require(
             block.timestamp >= selectedCampaign.deadline,
             "Campaign is still ongoing"
         );
+        require(
+            selectedCampaign.amountRaised > 0,
+            "Campaign already ended or no funds raised"
+        );
+        // Transfer the raised amount to the benefactor
         (bool success, ) = payable(selectedCampaign.benefactor).call{
             value: selectedCampaign.amountRaised
         }("");
         require(success, "Transfer to benefactor failed.");
+        // Emit the event
         emit CampaignEnded(
             selectedCampaign,
             selectedCampaign.amountRaised,
             selectedCampaign.goal
         );
+        // Reset the raised amount to avoid re-entrancy or multiple withdrawals
+        selectedCampaign.amountRaised = 0;
         return selectedCampaign;
     }
 
-    /**
-     * @notice Withdraw leftover funds in the campaign.
-     * @dev Function to allow the owner to withdraw leftover funds.
-     */
+    // Function to allow the owner to withdraw leftover funds
     function withdrawLeftoverFunds() public payable onlyOwner {
         require(address(this).balance > 0, "No funds to withdraw");
         payable(owner).transfer(address(this).balance); //One way transfer to the owner of the contract.
